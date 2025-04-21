@@ -13,67 +13,102 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * with a configurable tax applied to distributions.
  */
 contract Campaign is Ownable, ReentrancyGuard {
-    // Campaign name
-    string public name;
+    // --- Events ---
+
+    event TaxAddressSet(address indexed newTaxAddress);
+    event TaxPercentageSet(uint256 newTaxPercentageBps);
+    event CampaignNameUpdated(string newName);
+    event CampaignDateUpdated(uint256 startDate, uint256 endDate);
+    event CampaignRewardUpdated(uint256 totalReward);
+    event CampaignConfigured(uint256 start, uint256 end);
+    event RewardDeposited(uint256 amount);
+    event ContributorAdded(address[] contributors, uint256[] scores);
+    event RewardWithdrawn(address contributor, uint256 amount);
 
     struct Contribution {
         address contributor; // The address of the contributor for this record
-        uint256 amount;      // The current amount locked in this contribution record
+        uint256 amount; // The current amount locked in this contribution record
     }
 
-    // --- State Variables ---
+    string public name;
+    address public campaignManager;
+    uint256 public campaignStart;
+    uint256 public campaignEnd;
+    bool public rewardsDeposited;
+    uint256 public totalReward;
+    uint256 public totalScore;
 
-    IERC20 public immutable token; // The ERC20 token being managed for the campaign
-
-    // Mapping from contribution ID to the contribution details
-    mapping(uint256 => Contribution) public contributions;
-
-    // Counter to generate unique contribution IDs (starts from 1)
-    uint256 private _nextContributionId = 1;
+    mapping(address => uint256) public scores;
+    mapping(address => bool) public hasWithdrawn;
 
     // Tax configuration
+    IERC20 public rewardAddress;
     address public taxAddress;
     uint256 public taxPercentageBps; // Tax percentage in Basis Points (1% = 100, 5% = 500, 100% = 10000)
 
     // --- Constants ---
     uint256 public constant MAX_TAX_BPS = 10000; // Maximum basis points (100%)
 
-    // --- Events ---
+    // --- Modifier ---
 
-    event Contributed(address indexed contributor, uint256 indexed contributionId, uint256 amount);
-    event ContributionIncreased(uint256 indexed contributionId, uint256 additionalAmount, uint256 newTotalAmount);
-    event ContributionRefunded(uint256 indexed contributionId, address indexed contributor, uint256 refundedAmount, uint256 remainingAmount);
-    event ContributionClosed(uint256 indexed contributionId); // Emitted when a contribution is fully refunded
-    event Distributed(address[] recipients, uint256[] amounts, uint256 taxAmount);
-    event TaxAddressSet(address indexed newTaxAddress);
-    event TaxPercentageSet(uint256 newTaxPercentageBps);
-    event CampaignNameUpdated(string newName);
+    modifier campaignEnded() {
+        require(block.timestamp > campaignEnd, "Campaign not ended");
+        _;
+    }
+
+    modifier campaignStarted() {
+        require(block.timestamp > campaignStart, "Campaign not started");
+        _;
+    }
+
+    modifier onlyCampaignManager() {
+        require(campaignManager == msg.sender, "Only campaign manager allowed");
+        _;
+    }
 
     // --- Constructor ---
 
     /**
      * @dev Sets the campaign name, ERC20 token, initial tax address, and tax percentage.
      * @param _name The name of the campaign
-     * @param _tokenAddress The address of the ERC20 token contract.
+     * @param _startDate The start date of the campaign (in seconds since epoch).
+     * @param _endDate The end date of the campaign (in seconds since epoch).
+     * @param _totalReward The total reward amount for the campaign.
+     * @param _rewardAddress The address of the ERC20 token contract.
      * @param _initialTaxAddress The initial address to receive distribution tax.
      * @param _initialTaxPercentageBps The initial tax rate in basis points (e.g., 500 for 5%).
      */
     constructor(
         string memory _name,
-        address _tokenAddress,
+        uint256 _startDate,
+        uint256 _endDate,
+        uint256 _totalReward,
+        address _rewardAddress,
         address _initialTaxAddress,
-        uint256 _initialTaxPercentageBps
-    ) Ownable(msg.sender) {
-        require(_tokenAddress != address(0), "Campaign: Token address cannot be zero");
-        require(_initialTaxPercentageBps <= MAX_TAX_BPS, "Campaign: Initial tax exceeds maximum");
+        uint256 _initialTaxPercentageBps,
+        address _campaignOwner,
+        address _campaignManager
+    ) Ownable(_campaignOwner) {
+        require(
+            _rewardAddress != address(0),
+            "Campaign: Token address cannot be zero"
+        );
+        require(
+            _initialTaxPercentageBps <= MAX_TAX_BPS,
+            "Campaign: Initial tax exceeds maximum"
+        );
 
         name = _name;
-        token = IERC20(_tokenAddress);
+        campaignStart = _startDate;
+        campaignEnd = _endDate;
+        totalReward = _totalReward;
+        rewardsDeposited = false;
+
+        rewardAddress = IERC20(_rewardAddress);
         taxAddress = _initialTaxAddress;
         taxPercentageBps = _initialTaxPercentageBps;
+        campaignManager = _campaignManager;
     }
-
-    // --- Owner Functions ---
 
     /**
      * @dev Updates the campaign name
@@ -85,10 +120,46 @@ contract Campaign is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Updates the campaign date
+     * @param _startDate The start date for the campaign
+     * @param _endDate The end date for the campaign
+     */
+    function updateCampaignDate(
+        uint256 _startDate,
+        uint256 _endDate
+    ) external onlyOwner {
+        require(
+            _endDate > block.timestamp,
+            "CampaignManager: End date must be in the future"
+        );
+
+        campaignStart = _startDate;
+        campaignEnd = _endDate;
+
+        emit CampaignDateUpdated(_startDate, _endDate);
+    }
+
+    /**
+     * @dev Updates the campaign reward
+     * @param _totalReward The total reward for the campaign
+     */
+    function updateCampaignReward(uint256 _totalReward) external onlyOwner {
+        require(
+            campaignStart > block.timestamp,
+            "CampaignManager: Campaign already started"
+        );
+
+        totalReward = _totalReward;
+        emit CampaignRewardUpdated(_totalReward);
+    }
+
+    /**
      * @dev Sets the address where distribution taxes are sent.
      * @param _newTaxAddress The new address for tax collection.
      */
-    function setTaxAddress(address _newTaxAddress) external onlyOwner {
+    function setTaxAddress(
+        address _newTaxAddress
+    ) external onlyCampaignManager {
         taxAddress = _newTaxAddress;
         emit TaxAddressSet(_newTaxAddress);
     }
@@ -97,169 +168,66 @@ contract Campaign is Ownable, ReentrancyGuard {
      * @dev Sets the tax percentage in basis points (1/100th of a percent).
      * @param _newTaxPercentageBps The new tax rate (e.g., 500 for 5%). Max 10000.
      */
-    function setTaxPercentage(uint256 _newTaxPercentageBps) external onlyOwner {
-        require(_newTaxPercentageBps <= MAX_TAX_BPS, "Campaign: Tax percentage exceeds maximum");
+    function setTaxPercentage(
+        uint256 _newTaxPercentageBps
+    ) external onlyCampaignManager {
+        require(
+            _newTaxPercentageBps <= MAX_TAX_BPS,
+            "Campaign: Tax percentage exceeds maximum"
+        );
         taxPercentageBps = _newTaxPercentageBps;
         emit TaxPercentageSet(_newTaxPercentageBps);
     }
 
-    // --- Contributor Functions ---
+    function depositReward() external onlyOwner {
+        require(!rewardsDeposited, "Already deposited");
 
-    /**
-     * @dev Creates a new contribution record for the caller (contributor).
-     * Contributor MUST have approved this contract to spend at least `_amount`.
-     * @param _amount The amount of tokens to contribute.
-     * @return contributionId The ID of the newly created contribution record.
-     */
-    function contribute(uint256 _amount) external nonReentrant returns (uint256 contributionId) {
-        require(_amount > 0, "Campaign: Contribution amount must be positive");        
-        // Get current ID and increment the counter for the next one
-        contributionId = _nextContributionId;
-        _nextContributionId = _nextContributionId + 1;
+        uint256 taxAmount = (totalReward * taxPercentageBps) / MAX_TAX_BPS;
+        uint256 netAmount = totalReward - taxAmount;
 
-        // Create and store the new contribution record
-        contributions[contributionId] = Contribution({
-            contributor: msg.sender,
-            amount: _amount
-        });
+        rewardAddress.transferFrom(msg.sender, address(this), totalReward);
 
-        // Transfer tokens from contributor to this contract
-        _safeTransferFrom(msg.sender, address(this), _amount);
-
-        emit Contributed(msg.sender, contributionId, _amount);
-        return contributionId;
-    }
-
-    /**
-     * @dev Adds more funds to an existing contribution record owned by the caller.
-     * Contributor MUST have approved this contract to spend at least `_additionalAmount`.
-     * @param _contributionId The ID of the contribution record to top up.
-     * @param _additionalAmount The amount of tokens to add.
-     */
-    function addToContribution(uint256 _contributionId, uint256 _additionalAmount) external nonReentrant {
-        require(_additionalAmount > 0, "Campaign: Added amount must be positive");
-
-        Contribution storage record = contributions[_contributionId]; // Get storage pointer        
-        require(record.contributor != address(0), "Campaign: Contribution record does not exist");
-        require(record.contributor == msg.sender, "Campaign: Caller is not the contributor for this record");
-
-        // Update the amount *before* transfer (Checks-Effects-Interactions)
-        record.amount = record.amount + _additionalAmount;
-
-        // Transfer tokens from contributor to this contract
-        _safeTransferFrom(msg.sender, address(this), _additionalAmount);
-
-        emit ContributionIncreased(_contributionId, _additionalAmount, record.amount);
-    }
-
-    /**
-     * @dev Refunds funds from a specific contribution record back to the original contributor.
-     * Can refund partial or full amount. If full amount is refunded, the record is deleted.
-     * @param _contributionId The ID of the contribution record to refund funds from.
-     * @param _amount The amount to refund (cannot exceed the record's current amount).
-     */
-    function refundContribution(uint256 _contributionId, uint256 _amount) external onlyOwner nonReentrant {
-        require(_amount > 0, "Campaign: Refund amount must be positive");
-
-        Contribution storage record = contributions[_contributionId]; // Get storage pointer
-
-        require(record.contributor != address(0), "Campaign: Contribution record does not exist");        
-        require(record.amount >= _amount, "Campaign: Refund amount exceeds contribution balance");
-
-        address contributor = record.contributor; // Cache contributor address
-        uint256 remainingAmount = record.amount - _amount;
-
-        // Update state *before* transfer
-        record.amount = remainingAmount;
-
-        // If the entire amount is refunded, delete the record to save gas
-        if (remainingAmount == 0) {
-            delete contributions[_contributionId];
-            emit ContributionClosed(_contributionId);
-        }
-
-        // Transfer tokens back to the contributor
-        _safeTransfer(contributor, _amount);
-
-        emit ContributionRefunded(_contributionId, contributor, _amount, remainingAmount);
-    }
-
-    /**
-     * @dev Distributes funds to multiple recipients with a tax applied.
-     * @param _recipients Array of recipient addresses.
-     * @param _amounts Array of amounts to distribute to each recipient.
-     */
-    function distribute(address[] calldata _recipients, uint256[] calldata _amounts) external onlyOwner nonReentrant {
-        require(_recipients.length == _amounts.length, "Campaign: Recipients and amounts arrays must have the same length");
-        require(_recipients.length > 0, "Campaign: Must have at least one recipient");
-
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < _amounts.length; i++) {
-            totalAmount += _amounts[i];
-        }
-
-        uint256 taxAmount = (totalAmount * taxPercentageBps) / MAX_TAX_BPS;
-        uint256 totalWithTax = totalAmount + taxAmount;
-
-        require(totalWithTax <= token.balanceOf(address(this)), "Campaign: Insufficient balance for distribution");
-
-        // Transfer tax first
+        // Forward tax to treasury
         if (taxAmount > 0) {
-            _safeTransfer(taxAddress, taxAmount);
+            rewardAddress.transfer(taxAddress, taxAmount);
         }
 
-        // Transfer to recipients
-        for (uint256 i = 0; i < _recipients.length; i++) {
-            if (_amounts[i] > 0) {
-                _safeTransfer(_recipients[i], _amounts[i]);
+        totalReward = netAmount;
+        rewardsDeposited = true;
+
+        emit RewardDeposited(totalReward);
+    }
+
+    function addContributors(
+        address[] calldata _contributors,
+        uint256[] calldata _scores
+    ) external onlyCampaignManager {
+        require(
+            campaignStart < block.timestamp,
+            "CampaignManager: Campaign not started"
+        );
+        require(_contributors.length == _scores.length, "Mismatched input");
+        for (uint256 i = 0; i < _contributors.length; i++) {
+            address contributor = _contributors[i];
+            uint256 score = _scores[i];
+            if (scores[contributor] == 0) {
+                totalScore += score;
+                scores[contributor] = score;
             }
         }
-
-        emit Distributed(_recipients, _amounts, taxAmount);
+        emit ContributorAdded(_contributors, _scores);
     }
 
-    // --- View Functions ---
+    function withdraw() external campaignEnded {
+        require(rewardsDeposited, "Rewards not deposited");
+        require(!hasWithdrawn[msg.sender], "Already withdrawn");
+        uint256 score = scores[msg.sender];
+        require(score > 0, "No score");
 
-    /**
-     * @dev Gets the details of a specific contribution record.
-     * @param _contributionId The ID of the contribution record.
-     * @return contributor The address of the contributor.
-     * @return amount The current amount locked in the record.
-     */
-    function getContribution(uint256 _contributionId) external view returns (address contributor, uint256 amount) {
-        Contribution storage record = contributions[_contributionId];
-        return (record.contributor, record.amount);
-    }
+        uint256 share = (totalReward * score) / totalScore;
+        hasWithdrawn[msg.sender] = true;
+        rewardAddress.transfer(msg.sender, share);
 
-    /**
-     * @dev Gets the next available contribution ID.
-     */
-    function getNextContributionId() external view returns (uint256) {
-        return _nextContributionId;
-    }
-
-    /**
-     * @dev Gets the total balance of the managed token held by this contract.
-     */
-    function getContractTokenBalance() external view returns (uint256) {
-        return token.balanceOf(address(this));
-    }
-
-    // --- Internal Helper Functions ---
-
-    /**
-     * @dev Internal function for safely transferring tokens from this contract.
-     */
-    function _safeTransfer(address _to, uint256 _amount) internal {
-        bool success = token.transfer(_to, _amount);
-        require(success, "Campaign: ERC20 transfer failed");
-    }
-
-     /**
-     * @dev Internal function for safely transferring tokens to this contract.
-     */
-    function _safeTransferFrom(address _from, address _to, uint256 _amount) internal {
-        bool success = token.transferFrom(_from, _to, _amount);
-        require(success, "Campaign: ERC20 transferFrom failed. Check allowance.");
+        emit RewardWithdrawn(msg.sender, share);
     }
 }
