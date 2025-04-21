@@ -1,66 +1,52 @@
-## Foundry
+## Write2Earn Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+```
+Blog Token
 
-Foundry consists of:
+https://pharosscan.xyz/address/0xa156eEBF06FAC2F9DD7F9748f3f57de8C4bF6D1B
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-## Documentation
+Factory Campaign
 
-https://book.getfoundry.sh/
+https://pharosscan.xyz/address/0x12EF71cee002363Fbd20F0cf4E3b289A2db179Ad
 
-## Usage
 
-### Build
+Campaign Manager
 
-```shell
-$ forge build
+https://pharosscan.xyz/address/0x94464BcbFb7133c1e13f499Ad3De7AdE3CcCC749
+
 ```
 
-### Test
+### Commands
 
-```shell
-$ forge test
+Add Campaign Owner
+
+```
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x94464BcbFb7133c1e13f499Ad3De7AdE3CcCC749 'addCampaignOwner(address)' <CAMPAIGN_OWNER_ADDR> --private-key <DEPLOYER_PRIV_KEY>
 ```
 
-### Format
+Create Campaign
 
-```shell
-$ forge fmt
+```
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x94464BcbFb7133c1e13f499Ad3De7AdE3CcCC749 'createCampaign(string,uint256,uint256,uint256)' <CAMPAIGN NAME> <START TIMESTAMP> <END TIMESTAMP> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 ```
 
-### Gas Snapshots
+Campaign Owner Deposit Reward
 
-```shell
-$ forge snapshot
+```
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0xa156eEBF06FAC2F9DD7F9748f3f57de8C4bF6D1B 'approve(address,uint256)' <CAMPAIGN ADDRESS> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
+
+cast send --rpc-url https://devnet.dplabs-internal.com/ <CAMPAIGN ADDRESS> 'depositReward()' --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 ```
 
-### Anvil
+Add Contributor
 
-```shell
-$ anvil
+```
+cast send --rpc-url https://devnet.dplabs-internal.com/ <CAMPAIGN ADDRESS> 'addContributors(address[],uint256[])' <CONTRIBUTOR ADDRESS> <CONTRIBUTOR SCORES> --private-key <CAMPAIGN_MANAGER_PRIV_KEY>
 ```
 
-### Deploy
+Contributor Withdraw Reward
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+cast send --rpc-url https://devnet.dplabs-internal.com/ <CAMPAIGN ADDRESS> 'withdraw()' --private-key <CONTRIBUTOR_PRIV_KEY>
 ```
