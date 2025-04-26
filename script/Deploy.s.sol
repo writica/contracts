@@ -18,7 +18,7 @@ contract BlogToken is ERC20 {
  */
 contract DeployScript is Script {
     uint256 constant TAX_PERCENTAGE = 500; // 5%
-    address constant TAX_ADDRESS = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address constant TAX_ADDRESS = 0x9EF7a9d46C4F3EC4378D3dD495E827F0D1cb475E;
 
     function run() external {
         // Start broadcasting transactions

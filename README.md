@@ -3,17 +3,17 @@
 ```
 Blog Token
 
-https://pharosscan.xyz/address/0xa156eEBF06FAC2F9DD7F9748f3f57de8C4bF6D1B
+https://pharosscan.xyz/address/0x0e3e31c813b23cee22e1c1643ab974c8e2cc5769
 
 
 Factory Campaign
 
-https://pharosscan.xyz/address/0x12EF71cee002363Fbd20F0cf4E3b289A2db179Ad
+https://pharosscan.xyz/address/0x1dbef158d3d238fdb8d1cd1f3648170e20bf5655
 
 
 Campaign Manager
 
-https://pharosscan.xyz/address/0x94464BcbFb7133c1e13f499Ad3De7AdE3CcCC749
+https://pharosscan.xyz/address/0x20d39d65bf09af1703417fedb2b69f1de9325b4e
 
 ```
 
@@ -22,19 +22,19 @@ https://pharosscan.xyz/address/0x94464BcbFb7133c1e13f499Ad3De7AdE3CcCC749
 Add Campaign Owner
 
 ```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0x94464BcbFb7133c1e13f499Ad3De7AdE3CcCC749 'addCampaignOwner(address)' <CAMPAIGN_OWNER_ADDR> --private-key <DEPLOYER_PRIV_KEY>
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x1dbef158d3d238fdb8d1cd1f3648170e20bf5655 'addCampaignOwner(address)' <CAMPAIGN_OWNER_ADDR> --private-key <DEPLOYER_PRIV_KEY>
 ```
 
 Create Campaign
 
 ```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0x94464BcbFb7133c1e13f499Ad3De7AdE3CcCC749 'createCampaign(string,uint256,uint256,uint256)' <CAMPAIGN NAME> <START TIMESTAMP> <END TIMESTAMP> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x1dbef158d3d238fdb8d1cd1f3648170e20bf5655 'createCampaign(string,uint256,uint256,uint256)' <CAMPAIGN NAME> <START TIMESTAMP> <END TIMESTAMP> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 ```
 
 Campaign Owner Deposit Reward
 
 ```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0xa156eEBF06FAC2F9DD7F9748f3f57de8C4bF6D1B 'approve(address,uint256)' <CAMPAIGN ADDRESS> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x0e3e31c813b23cee22e1c1643ab974c8e2cc5769 'approve(address,uint256)' <CAMPAIGN ADDRESS> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 
 cast send --rpc-url https://devnet.dplabs-internal.com/ <CAMPAIGN ADDRESS> 'depositReward()' --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 ```
