@@ -60,33 +60,12 @@ contract CampaignManagerTest is Test {
 
         // Set up the manager
         manager.setFactory(address(factory));
-        manager.addCampaignOwner(campaignOwner);
 
         factory.setCampaignManager(address(manager));
     }
 
     function test_Deployment() public view {
         assertEq(address(manager.factory()), address(factory));
-        assertTrue(manager.campaignOwners(campaignOwner));
-        assertFalse(manager.campaignOwners(contributor01));
-    }
-
-    function test_AddCampaignOwner() public {
-        address newOwner = makeAddr("newOwner");
-
-        vm.expectEmit(true, false, false, true);
-        emit CampaignOwnerAdded(newOwner);
-        manager.addCampaignOwner(newOwner);
-
-        assertTrue(manager.campaignOwners(newOwner));
-    }
-
-    function test_RemoveCampaignOwner() public {
-        vm.expectEmit(true, false, false, true);
-        emit CampaignOwnerRemoved(campaignOwner);
-        manager.removeCampaignOwner(campaignOwner);
-
-        assertFalse(manager.campaignOwners(campaignOwner));
     }
 
     function test_CreateCampaign() public {
@@ -112,22 +91,6 @@ contract CampaignManagerTest is Test {
         assertEq(address(campaign.rewardAddress()), address(token));
         assertEq(campaign.taxAddress(), taxCollector);
         assertEq(campaign.taxPercentageBps(), TAX_PERCENTAGE);
-
-        vm.stopPrank();
-    }
-
-    function test_NonCampaignOwnerCannotCreateCampaign() public {
-        // Switch to contributor (not a campaign owner)
-        vm.startPrank(contributor01);
-
-        // Try to create a campaign (should fail)
-        vm.expectRevert("CampaignManager: Caller is not a campaign owner");
-        manager.createCampaign(
-            "Test Campaign",
-            block.timestamp + 1 days,
-            block.timestamp + 30 days,
-            500 * 10 ** 18
-        );
 
         vm.stopPrank();
     }

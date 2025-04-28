@@ -17,9 +17,6 @@ contract CampaignManager is Ownable {
     // Factory contract for deploying campaigns
     FactoryCampaign public factory;
 
-    // Mapping to track campaign owners
-    mapping(address => bool) public campaignOwners;
-
     /**
      * @dev Constructor sets the deployer as the owner
      */
@@ -39,38 +36,6 @@ contract CampaignManager is Ownable {
     }
 
     /**
-     * @dev Adds a new campaign owner
-     * @param _owner The address of the new campaign owner
-     */
-    function addCampaignOwner(address _owner) external onlyOwner {
-        require(
-            _owner != address(0),
-            "CampaignManager: Owner address cannot be zero"
-        );
-        require(
-            !campaignOwners[_owner],
-            "CampaignManager: Already a campaign owner"
-        );
-
-        campaignOwners[_owner] = true;
-        emit CampaignOwnerAdded(_owner);
-    }
-
-    /**
-     * @dev Removes a campaign owner
-     * @param _owner The address of the campaign owner to remove
-     */
-    function removeCampaignOwner(address _owner) external onlyOwner {
-        require(
-            campaignOwners[_owner],
-            "CampaignManager: Not a campaign owner"
-        );
-
-        campaignOwners[_owner] = false;
-        emit CampaignOwnerRemoved(_owner);
-    }
-
-    /**
      * @dev Creates a new campaign through the factory
      * @param _name The name of the campaign
      * @return The address of the newly created campaign contract
@@ -84,10 +49,6 @@ contract CampaignManager is Ownable {
         require(
             address(factory) != address(0),
             "CampaignManager: Factory not set"
-        );
-        require(
-            campaignOwners[msg.sender],
-            "CampaignManager: Caller is not a campaign owner"
         );
         require(
             _endDate > block.timestamp,
