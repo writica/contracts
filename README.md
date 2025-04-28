@@ -22,13 +22,13 @@ https://pharosscan.xyz/address/0x20d39d65bf09af1703417fedb2b69f1de9325b4e
 Add Campaign Owner
 
 ```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0x1dbef158d3d238fdb8d1cd1f3648170e20bf5655 'addCampaignOwner(address)' <CAMPAIGN_OWNER_ADDR> --private-key <DEPLOYER_PRIV_KEY>
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x20d39d65bf09af1703417fedb2b69f1de9325b4e 'addCampaignOwner(address)' <CAMPAIGN_OWNER_ADDR> --private-key <DEPLOYER_PRIV_KEY>
 ```
 
 Create Campaign
 
 ```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0x1dbef158d3d238fdb8d1cd1f3648170e20bf5655 'createCampaign(string,uint256,uint256,uint256)' <CAMPAIGN NAME> <START TIMESTAMP> <END TIMESTAMP> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x20d39d65bf09af1703417fedb2b69f1de9325b4e 'createCampaign(string,uint256,uint256,uint256)' <CAMPAIGN NAME> <START TIMESTAMP> <END TIMESTAMP> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 ```
 
 Campaign Owner Deposit Reward
