@@ -3,38 +3,32 @@
 ```
 Blog Token
 
-https://pharosscan.xyz/address/0x0e3e31c813b23cee22e1c1643ab974c8e2cc5769
+https://pharosscan.xyz/address/0x79b4f48276bdd90098b81d331287216ccff5ed69
 
 
 Factory Campaign
 
-https://pharosscan.xyz/address/0x1dbef158d3d238fdb8d1cd1f3648170e20bf5655
+https://pharosscan.xyz/address/0x613ee8e6467dfea27b59cfffbc174a9a47f72972
 
 
 Campaign Manager
 
-https://pharosscan.xyz/address/0x20d39d65bf09af1703417fedb2b69f1de9325b4e
+https://pharosscan.xyz/address/0x23a63231ae12a4e2e66b230dde0a235a47ebccb6
 
 ```
 
 ### Commands
 
-Add Campaign Owner
-
-```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0x20d39d65bf09af1703417fedb2b69f1de9325b4e 'addCampaignOwner(address)' <CAMPAIGN_OWNER_ADDR> --private-key <DEPLOYER_PRIV_KEY>
-```
-
 Create Campaign
 
 ```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0x20d39d65bf09af1703417fedb2b69f1de9325b4e 'createCampaign(string,uint256,uint256,uint256)' <CAMPAIGN NAME> <START TIMESTAMP> <END TIMESTAMP> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x23a63231ae12a4e2e66b230dde0a235a47ebccb6 'createCampaign(string,uint256,uint256,uint256)' <CAMPAIGN NAME> <START TIMESTAMP> <END TIMESTAMP> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 ```
 
 Campaign Owner Deposit Reward
 
 ```
-cast send --rpc-url https://devnet.dplabs-internal.com/ 0x0e3e31c813b23cee22e1c1643ab974c8e2cc5769 'approve(address,uint256)' <CAMPAIGN ADDRESS> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
+cast send --rpc-url https://devnet.dplabs-internal.com/ 0x79b4f48276bdd90098b81d331287216ccff5ed69 'approve(address,uint256)' <CAMPAIGN ADDRESS> <REWARD AMOUNT> --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 
 cast send --rpc-url https://devnet.dplabs-internal.com/ <CAMPAIGN ADDRESS> 'depositReward()' --private-key <CAMPAIGN_OWNER_PRIV_KEY>
 ```
