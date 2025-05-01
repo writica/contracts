@@ -23,6 +23,7 @@ contract Campaign is Ownable, ReentrancyGuard {
     event CampaignConfigured(uint256 start, uint256 end);
     event RewardDeposited(uint256 amount);
     event ContributorAdded(address[] contributors, uint256[] scores);
+    event SingleContributorAdded(address contributor, uint256 score);
     event RewardWithdrawn(address contributor, uint256 amount);
 
     struct Contribution {
@@ -201,11 +202,7 @@ contract Campaign is Ownable, ReentrancyGuard {
     function addContributors(
         address[] calldata _contributors,
         uint256[] calldata _scores
-    ) external onlyCampaignManager {
-        require(
-            campaignStart < block.timestamp,
-            "CampaignManager: Campaign not started"
-        );
+    ) external onlyOwner {
         require(_contributors.length == _scores.length, "Mismatched input");
         for (uint256 i = 0; i < _contributors.length; i++) {
             address contributor = _contributors[i];
@@ -218,7 +215,18 @@ contract Campaign is Ownable, ReentrancyGuard {
         emit ContributorAdded(_contributors, _scores);
     }
 
-    function withdraw() external campaignEnded {
+    function addContributor(
+        address _contributor,
+        uint256 _score
+    ) external onlyOwner {
+        if (scores[_contributor] == 0) {
+            totalScore += _score;
+            scores[_contributor] = _score;
+        }
+        emit SingleContributorAdded(_contributor, _score);
+    }
+
+    function withdraw() external {
         require(rewardsDeposited, "Rewards not deposited");
         require(!hasWithdrawn[msg.sender], "Already withdrawn");
         uint256 score = scores[msg.sender];

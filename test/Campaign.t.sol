@@ -25,6 +25,7 @@ contract CampaignTest is Test {
     address public campaignManager;
     address public contributor01;
     address public contributor02;
+    address public contributor03;
     address public taxCollector;
 
     uint256 public constant INITIAL_TOKEN_AMOUNT = 10000 * 10 ** 18; // 10,000 tokens
@@ -52,6 +53,7 @@ contract CampaignTest is Test {
     event TaxPercentageSet(uint256 newTaxPercentageBps);
     event CampaignNameUpdated(string newName);
     event ContributorAdded(address[] contributors, uint256[] scores);
+    event SingleContributorAdded(address contributor, uint256 score);
     event RewardWithdrawn(address contributor, uint256 amount);
 
     function setUp() public {
@@ -61,6 +63,7 @@ contract CampaignTest is Test {
         campaignManager = makeAddr("campaignManager");
         contributor01 = makeAddr("contributor01");
         contributor02 = makeAddr("contributor02");
+        contributor03 = makeAddr("contributor03");
         taxCollector = makeAddr("taxCollector");
 
         // Deploy token
@@ -112,11 +115,6 @@ contract CampaignTest is Test {
         vm.warp(block.timestamp + 2 days);
         campaign.depositReward();
 
-        vm.stopPrank();
-
-        // Create initial contribution
-        vm.startPrank(campaignManager);
-
         address[] memory contributors = new address[](2);
         uint256[] memory scores = new uint256[](2);
         contributors[0] = contributor01;
@@ -135,6 +133,11 @@ contract CampaignTest is Test {
         assertEq(amount, scores[0]);
         assertEq(amount2, scores[1]);
 
+        // Add singe score to contribution
+        vm.expectEmit(true, false, false, false);
+        emit SingleContributorAdded(contributor03, 30);
+        campaign.addContributor(contributor03, 30);
+
         vm.stopPrank();
     }
 
@@ -144,11 +147,6 @@ contract CampaignTest is Test {
 
         vm.warp(block.timestamp + 2 days);
         campaign.depositReward();
-
-        vm.stopPrank();
-
-        // Create initial contribution
-        vm.startPrank(campaignManager);
 
         address[] memory contributors = new address[](2);
         uint256[] memory scores = new uint256[](2);
@@ -166,7 +164,6 @@ contract CampaignTest is Test {
         vm.startPrank(contributor01);
 
         uint256 share = ((475 * 10 ** 18) * 10) / uint256(30);
-        vm.warp(block.timestamp + 32 days);
 
         vm.expectEmit(true, false, false, false);
         emit RewardWithdrawn(contributors[0], share);
